@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>657</width>
+    <height>576</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Messenger</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QTextEdit" name="typeMessage">
+    <property name="geometry">
+     <rect>
+      <x>159</x>
+      <y>535</y>
+      <width>401</width>
+      <height>35</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Segoe UI</family>
+      <pointsize>10</pointsize>
+      <italic>false</italic>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: transparent;</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="sendButton">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>569</x>
+      <y>535</y>
+      <width>80</width>
+      <height>35</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton
+{	
+	background-color: #3399ff;
+	color: black;
+	border-radius: 7px;
+}
+QPushButton:disabled
+{
+	background-color:#b3d9ff;
+	color: grey;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>SEND</string>
+    </property>
+   </widget>
+   <widget class="QListWidget" name="sessionsList">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>35</y>
+      <width>150</width>
+      <height>535</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: transparent;</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="myUsernameLabel">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>5</y>
+      <width>100</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: transparent;
+</string>
+    </property>
+    <property name="text">
+     <string>My username: </string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="myUsernameEdit">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>5</y>
+      <width>100</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 1px solid grey;
+border-radius: 7px;</string>
+    </property>
+    <property name="text">
+     <string>user1</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="addressLabel">
+    <property name="geometry">
+     <rect>
+      <x>203</x>
+      <y>5</y>
+      <width>70</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: transparent;
+</string>
+    </property>
+    <property name="text">
+     <string>Address: </string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="addressEdit">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>5</y>
+      <width>70</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 1px solid grey;
+border-radius: 7px;</string>
+    </property>
+    <property name="text">
+     <string>127.0.0.1</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="portLabel">
+    <property name="geometry">
+     <rect>
+      <x>346</x>
+      <y>5</y>
+      <width>50</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: transparent;
+</string>
+    </property>
+    <property name="text">
+     <string>Port:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="portEdit">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>5</y>
+      <width>70</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 1px solid grey;
+border-radius: 7px;</string>
+    </property>
+    <property name="text">
+     <string>15001</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="connectButton">
+    <property name="geometry">
+     <rect>
+      <x>460</x>
+      <y>5</y>
+      <width>80</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton 
+{	
+	background-color: #009900;
+	color: black;
+	border-radius: 7px;
+}
+
+QPushButton:pressed 
+{
+  background-color: green;
+}
+
+QPushButton:disabled
+{
+  background-color:#a8d194;
+  border-radius: 7px;
+  color: grey;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>Connect</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="disconnectButton">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>550</x>
+      <y>5</y>
+      <width>90</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton
+{
+	background-color:  #ff9933;
+	color: black;
+	border-radius: 7px;
+}
+
+QPushButton:disabled
+{
+  background-color:#ffbf80;
+  border-radius: 7px;
+  color: grey;
+}</string>
+    </property>
+    <property name="text">
+     <string>Disсonnect</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="feed">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>35</y>
+      <width>510</width>
+      <height>500</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: transparent;
+background-color: #f0f0f0;</string>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
+   </widget>
+  </widget>
+  <action name="actiondfhg">
+   <property name="text">
+    <string>Exit chat</string>
+   </property>
+  </action>
+  <action name="actiondf">
+   <property name="text">
+    <string>Create session</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
