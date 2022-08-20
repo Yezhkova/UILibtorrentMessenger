@@ -10,7 +10,7 @@ public:
 
 };
 
-class SessionWrapperDelegate
+class SessionWrapperDelegate : public std::enable_shared_from_this<SessionWrapperDelegate>
 {
 public:
     virtual void onMessage( const std::string& messageText, boost::asio::ip::udp::endpoint senderEndpoint ) = 0;

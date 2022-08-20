@@ -15,6 +15,7 @@ class MainWindow : public QMainWindow, public SessionWrapperDelegate
 private:
     Ui::MainWindow *                ui;
     std::shared_ptr<SessionWrapper> m_sessionWrapperPtr = nullptr;
+
     std::string                     m_username;
     std::string                     m_address;
     uint16_t                        m_port;

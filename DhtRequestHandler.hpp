@@ -5,7 +5,7 @@
 #include "libtorrent/bdecode.hpp"
 #include <iostream>
 #include "SessionWrapperDelegate.hpp"
-
+#include "log.hpp"
 struct DhtRequestHandler : libtorrent::plugin
 {
 private:
@@ -28,17 +28,14 @@ public:
             lt::entry&                              response )
         override
     {
-        std::cout <<" \n------------------------------------------LOG\n";
+        LOG("on_dht_request() [q]: " << dict.dict_find_string_value("q") << ", sender: " << senderEndpoint);
 
-        std::cout << dict.dict_find_string_value("q") << '\n';  // cout << "test_good";
-        if (dict.dict_find_string_value("q") == "test_good")
+        if (dict.dict_find_string_value("q") == "msg")
         {
-            std::cout<<"\n------------------------------------------LOG\n" << std::flush;
             auto txt = dict.dict_find_string_value("txt");
-
-            m_delegate->onMessage(std::string(txt), senderEndpoint); // cout << <message>
-            //exit(0);
-            response["r"]["good"] = 1;
+            LOG("Received message \"" << std::string(txt) << "\" from " << senderEndpoint);
+            m_delegate->onMessage(std::string(txt), senderEndpoint);
+            response["r"]["msg"] = 1;
             return true;
         }
         return false;

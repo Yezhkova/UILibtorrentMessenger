@@ -30,7 +30,7 @@ public:
         m_session( generateSessionSettings( addressAndPort ) ),
         m_delegate( delegate )
     {
-        LOG(" ");
+        LOG("SessionWrapper initialized");
     }
 
     virtual void start() override
@@ -47,20 +47,11 @@ public:
     virtual void sendMessage( boost::asio::ip::udp::endpoint endpoint, const std::string& text ) override
     {
         libtorrent::entry e;
-        e["q"] = "test_good";
+        e["q"] = "msg";
         e["txt"] = text;
 
         m_session.dht_direct_request( endpoint, e, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
 
-    }
-};
-
-class UIDelegate : public SessionWrapperDelegate
-
-{
-    void onMessage( const std::string& messageText, boost::asio::ip::udp::endpoint senderEndpoint ) override
-    {
-        LOG(senderEndpoint << '\t' << messageText);
     }
 };
 
