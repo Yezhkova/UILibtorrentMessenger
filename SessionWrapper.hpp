@@ -1,14 +1,8 @@
 #pragma once
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/session_params.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/alert_types.hpp"
-#include "libtorrent/bdecode.hpp"
-#include <iostream>
 #include "DhtRequestHandler.hpp"
-#include "SessionWrapperDelegate.hpp"
 #include "log.hpp"
 
 class SessionWrapper : public SessionWrapperAbstract
@@ -36,7 +30,7 @@ public:
         m_session( generateSessionSettings( addressAndPort ) ),
         m_delegate( delegate )
     {
-
+        LOG(" ");
     }
 
     virtual void start() override
@@ -61,8 +55,12 @@ public:
     }
 };
 
-std::shared_ptr<SessionWrapper> createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate )
+class UIDelegate : public SessionWrapperDelegate
+
 {
-    return std::make_shared<SessionWrapper>( addressAndPort, delegate );
+    void onMessage( const std::string& messageText, boost::asio::ip::udp::endpoint senderEndpoint ) override
+    {
+        LOG(senderEndpoint << '\t' << messageText);
+    }
 };
 

@@ -1,8 +1,5 @@
 #pragma once
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/session_params.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bdecode.hpp"

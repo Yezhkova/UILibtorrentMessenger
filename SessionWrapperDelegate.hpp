@@ -1,7 +1,6 @@
 #pragma once
 
-#include "libtorrent/alert_types.hpp"
-#include <iostream>
+#include <boost/asio.hpp>
 
 class SessionWrapperAbstract : public std::enable_shared_from_this<SessionWrapperAbstract>
 {

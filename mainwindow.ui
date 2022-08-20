@@ -184,7 +184,7 @@ border-radius: 7px;</string>
 border-radius: 7px;</string>
     </property>
     <property name="text">
-     <string>127.0.0.1</string>
+     <string>192.168.1.10</string>
     </property>
    </widget>
    <widget class="QLabel" name="portLabel">
@@ -230,7 +230,7 @@ border-radius: 7px;</string>
 border-radius: 7px;</string>
     </property>
     <property name="text">
-     <string>15001</string>
+     <string>11101</string>
     </property>
    </widget>
    <widget class="QPushButton" name="connectButton">
