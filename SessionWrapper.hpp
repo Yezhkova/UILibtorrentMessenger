@@ -1,5 +1,5 @@
 #pragma once
-
+#define LIBTORRENT_MESSENGER_PET_PROJECT
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "DhtRequestHandler.hpp"
@@ -188,10 +188,10 @@ public:
         e["y"] = "q";
         e["q"] = "msg";
         e["txt"] = text;
-        std::shared_ptr<libtorrent::aux::session_impl> session_impl = m_session.native_handle();
-        libtorrent::dht::dht_tracker * dht = session_impl->dht();
-        dht->stop();
-
+        std::shared_ptr<libtorrent::aux::session_impl> sessionImpl = m_session.native_handle();
+        // in session_impl add function to reach dht -> to comments
+        libtorrent::dht::dht_state dhtState = sessionImpl->getDhtState();
+//        libtorrent::dht::dht_tracker * dht = session_impl->dht();
 //        libtorrent::dht::dht_state dhtState = dht->state();
 //        libtorrent::dht::node_ids_t nidsVec = dhtState.nids;
 //        for(auto it = nidsVec.begin(); it != nidsVec.end(); ++it)
