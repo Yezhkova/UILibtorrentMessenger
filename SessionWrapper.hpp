@@ -1,7 +1,5 @@
 #pragma once
 
-//#define TORRENT_EXPORT
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "DhtRequestHandler.hpp"
@@ -190,14 +188,17 @@ public:
         e["y"] = "q";
         e["q"] = "msg";
         e["txt"] = text;
-//        std::shared_ptr<libtorrent::aux::session_impl> session_impl = m_session.native_handle();
-//        libtorrent::dht::dht_tracker * dht = session_impl->dht();
+        std::shared_ptr<libtorrent::aux::session_impl> session_impl = m_session.native_handle();
+        libtorrent::dht::dht_tracker * dht = session_impl->dht();
+        dht->stop();
+
 //        libtorrent::dht::dht_state dhtState = dht->state();
 //        libtorrent::dht::node_ids_t nidsVec = dhtState.nids;
 //        for(auto it = nidsVec.begin(); it != nidsVec.end(); ++it)
 //        {
 //            LOG("ID: " << it->second.to_string());
 //        }
+
 //        LOG("ID: " << m_session.get_settings().get_str(lt::settings_pack::peer_fingerprint));
         m_session.dht_direct_request( endpoint, e, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
 
