@@ -24,25 +24,23 @@ boost::asio::ip::udp::endpoint MainWindow::uep(char const* ip, uint16_t port)
     return ret;
 }
 
-std::shared_ptr<SessionWrapper> MainWindow::createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate )
+void MainWindow::createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate )
 {
     LOG("Creating session pointer...");
-    return std::make_shared<SessionWrapper>( addressAndPort, delegate );
+    m_sessionWrapperPtr = std::make_shared<SessionWrapper>( addressAndPort, delegate );
 };
 
 void MainWindow::onMessage( const std::string& messageText, boost::asio::ip::udp::endpoint senderEndpoint )
 {
-//    std::thread readingThread([&]{
-//        std::string toPost = "<html><span>"+messageText+"</span></html>";
-////        ui->feed->setHtml(QString::fromStdString(toPost));
-//        emit signal(QString::fromStdString(toPost));
-//    });
-//    readingThread.join();
-
     std::string toPost = "<html><span>"+messageText+"</span></html>";
-//    ui->feed->setHtml(QString::fromStdString(toPost));
     emit signal(QString::fromStdString(toPost));
+}
 
+void MainWindow::onError( const std::error_code& ec )
+{
+}
+void MainWindow::onReply( int messageId )
+{
 }
 
 void MainWindow::on_connectButton_clicked()
@@ -56,7 +54,7 @@ void MainWindow::on_connectButton_clicked()
     ui->disconnectButton->setEnabled(true);
     ui->sendButton->setEnabled(true);
 
-    m_sessionWrapperPtr = createLtSessionPtr(m_address +":"+ std::to_string(m_port), shared_from_this());//////////////
+    createLtSessionPtr(m_address +":"+ std::to_string(m_port), shared_from_this());//////////////
     if(m_sessionWrapperPtr != nullptr)
     {
         m_sessionWrapperPtr->start();

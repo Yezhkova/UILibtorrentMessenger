@@ -22,12 +22,14 @@ private:
 
 private:
     boost::asio::ip::udp::endpoint uep(char const* ip, uint16_t port);
-    std::shared_ptr<SessionWrapper> createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate );
+    void createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate );
 
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     virtual void onMessage(const std::string& messageText, boost::asio::ip::udp::endpoint senderEndpoint ) override;
+    virtual void onError( const std::error_code& ec ) override;
+    virtual void onReply( int messageId ) override;
 
 private slots:
     void on_connectButton_clicked();

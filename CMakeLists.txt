@@ -24,9 +24,10 @@ set(PROJECT_SOURCES
 	log.hpp
 	SessionWrapperDelegate.hpp
 	SessionWrapper.hpp
+        StandaloneTest.cpp
 )
 
-include_directories(C:/Users/Admin/source/repos/QtProjects/libtorrent/include)
+include_directories(C:/Users/Admin/source/repos/QtProjects/libtorrentCopy/include)
 find_package(Boost 1.79.0 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -38,7 +39,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
 
 target_link_libraries(UILibtorrentMessenger PRIVATE Qt${QT_VERSION_MAJOR}::Core)
-target_link_libraries(UILibtorrentMessenger PRIVATE C:/Users/Admin/source/repos/QtProjects/build-libtorrent_MSVC/torrent-rasterbar.lib )
+target_link_libraries(UILibtorrentMessenger PRIVATE C:/Users/Admin/source/repos/QtProjects/build-libtorrentCopy_MSVC/torrent-rasterbar.lib )
 
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET UILibtorrentMessenger APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

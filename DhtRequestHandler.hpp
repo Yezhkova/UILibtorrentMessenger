@@ -29,7 +29,7 @@ public:
         override
     {
         LOG("on_dht_request() [q]: " << dict.dict_find_string_value("q") << ", sender: " << senderEndpoint);
-
+        LOG("Dictionary: " << dict);
         if (dict.dict_find_string_value("q") == "msg")
         {
             auto txt = dict.dict_find_string_value("txt");
