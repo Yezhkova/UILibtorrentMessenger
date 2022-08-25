@@ -1,7 +1,5 @@
 #pragma once
 
-//#define LIBTORRENT_MESSENGER_PET_PROJECT
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "DhtRequestHandler.hpp"
@@ -190,18 +188,28 @@ public:
         e["y"] = "q";
         e["q"] = "msg";
         e["txt"] = text;
-        std::shared_ptr<libtorrent::aux::session_impl> sessionImpl = m_session.native_handle();
-        // in session_impl add function to reach dht -> to comments
-        libtorrent::dht::dht_state dhtState = sessionImpl->getDhtState();
+        libtorrent::dht::dht_state dhtState = m_session.getDhtState();
         for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
         {
-            LOG("ID: " << it->second.to_string());
+            LOG("ID: " << it->second);
         }
 
 
-//        libtorrent::dht::dht_tracker * dht = sessionImpl->dht();
+//        sessionImpl->has_dht(); // non-inline function defined in .cpp doesn't link
+
+        // in session_impl add function to reach dht -> to comments
+//        libtorrent::dht::dht_tracker * dhtTracker = sessionImpl->dht();
+
+//        dhtTracker->stop(); // non-inline function defined in .cpp doesn't link
+//        auto vectorNodes = dhtTracker->state();
+
+
+
+
+
+
+
 //        libtorrent::dht::dht_state dhtState = dht->state();
-//        libtorrent::dht::node_ids_t nidsVec = dhtState.nids;
 //        for(auto it = nidsVec.begin(); it != nidsVec.end(); ++it)
 //        {
 //            LOG("ID: " << it->second.to_string());
