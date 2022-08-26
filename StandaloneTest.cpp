@@ -15,10 +15,10 @@ public:
 
 public:
 
-    void createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate )
+    void createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate, std::string username )
     {
         LOG("Creating session pointer...");
-        m_sessionWrapperPtr = std::make_shared<SessionWrapper>( addressAndPort, delegate );
+        m_sessionWrapperPtr = std::make_shared<SessionWrapper>( addressAndPort, delegate, username );
         m_sessionWrapperPtr->start();
     }
 
@@ -50,10 +50,10 @@ boost::asio::ip::udp::endpoint uep(char const* ip, uint16_t port)
 void standaloneTest()
 {
     UIDelegate responderTestDel;
-    responderTestDel.createLtSessionPtr(IP ":11101", std::make_shared<UIDelegate> (responderTestDel));
+    responderTestDel.createLtSessionPtr(IP ":11101", std::make_shared<UIDelegate> (responderTestDel), "user1");
 
     UIDelegate requesterTestDel;
-    requesterTestDel.createLtSessionPtr(IP_REQUESTER ":11102", std::make_shared<UIDelegate> (requesterTestDel));
+    requesterTestDel.createLtSessionPtr(IP_REQUESTER ":11102", std::make_shared<UIDelegate> (requesterTestDel), "user2");
 
     // successful request
     Sleep(1000);

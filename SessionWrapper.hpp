@@ -1,12 +1,13 @@
 #pragma once
 
+#include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "DhtRequestHandler.hpp"
 #include "log.hpp"
 
-#include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/kademlia/dht_tracker.hpp"
+#include "libtorrent/kademlia/ed25519.hpp"
+#include "libtorrent/kademlia/item.hpp"
 
 class SessionWrapper : public SessionWrapperAbstract
 {
@@ -14,6 +15,7 @@ private:
     libtorrent::session                       m_session;
     std::shared_ptr<SessionWrapperDelegate>   m_delegate;
     std::string                               m_addressAndPort;
+    std::string                               m_username;
 
     lt::settings_pack generateSessionSettings(std::string addressAndPort)
     {
@@ -26,24 +28,31 @@ private:
         sp.set_int(libtorrent::settings_pack::max_retry_port_bind, 800);
         sp.set_int(libtorrent::settings_pack::alert_mask, ~0);
         sp.set_str(libtorrent::settings_pack::listen_interfaces, addressAndPort);
-//        std::string c = "abcdefghijklmnopqrst";
-//        sp.set_str(libtorrent::settings_pack::peer_fingerprint, c);
+
+        sp.set_bool(libtorrent::settings_pack::dht_ignore_dark_internet, false);
+        sp.set_bool(libtorrent::settings_pack::dht_restrict_routing_ips, false);
         return sp;
     }
 
 public:
-    SessionWrapper(std::string addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate) :
+    SessionWrapper(std::string addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate, std::string username) :
         m_session( generateSessionSettings( addressAndPort ) ),
         m_delegate( delegate ),
-        m_addressAndPort(addressAndPort)
+        m_addressAndPort(addressAndPort),
+        m_username(username)
     {
         LOG("SessionWrapper initialized");
+
     }
 
     virtual void start() override
     {
         m_session.set_alert_notify( [this] { this->alertHandler(); } );
         m_session.add_extension(std::make_shared<DhtRequestHandler>(m_delegate));
+        Sleep(1000);
+        libtorrent::dht::dht_state dhtState = m_session.getDhtState();
+
+
     }
 
     void alertHandler()
@@ -73,10 +82,11 @@ public:
 
                 case lt::dht_mutable_item_alert::alert_type:
                 {
-//                    auto* theAlert = dynamic_cast<lt::dht_mutable_item_alert*>(alert);
-//                    if ( theAlert->salt == "endpoint" )
-//                    {
-//                    }
+                    auto* theAlert = dynamic_cast<lt::dht_mutable_item_alert*>(alert);
+                    LOG("Salt: " << theAlert->salt);
+                    if ( theAlert->salt == "endpoint" )
+                    {
+                    }
                     break;
                 }
 
@@ -189,10 +199,48 @@ public:
         e["q"] = "msg";
         e["txt"] = text;
         libtorrent::dht::dht_state dhtState = m_session.getDhtState();
-        for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
+        boost::asio::ip::address nodeAddress = dhtState.nids.begin()->first;
+        libtorrent::digest32<160> nodeId = dhtState.nids.begin()->second; // can there be more - ??????????????????????????????????????
+//        for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
+//        {
+//            LOG("Address: " << it->first << ", ID: " << it->second);
+//        }
+
+//        bootstrap_session({&dht, &dht6}, m_session); // ?????????????????????????????????????????????????????????????????????????????
+
+//        std::array<char, 32> seed = libtorrent::dht::ed25519_create_seed(); // cryptographically random bytes - ?????????????????????
+        std::array<char, 32> seed;
+        lt::dht::secret_key sk;
+        lt::dht::public_key pk;
+        std::tie(pk, sk) = lt::dht::ed25519_create_keypair(seed);
+        for(int i = 0; i < m_username.length(); ++i)
         {
-            LOG("Address: " << it->first << ", ID: " << it->second);
+            pk.bytes[i] = m_username[i];
         }
+        for(int i = m_username.length(); i < pk.len; ++i)
+        {
+            pk.bytes[i] = '0';
+        }
+        LOG("public key (" << m_username << ") :")
+        for(int i = 0; i < pk.len; ++i)
+        {
+            LOG(i << '\t' << pk.bytes[i]);
+        }
+
+        m_session.dht_put_item(pk.bytes, [&](lt::entry& item, std::array<char, 64>& sig
+            , std::int64_t& seq, std::string const& salt)
+        {
+            item = nodeId;
+            seq = 1;
+            std::vector<char> v;
+            lt::bencode(std::back_inserter(v), item);
+            lt::dht::signature sign = lt::dht::sign_mutable_item(v, salt
+                , lt::dht::sequence_number(seq), pk, sk);
+//            put_count++; // earlier: int put_count = 0;
+            sig = sign.bytes;
+        }, nodeAddress.to_string());
+
+//        m_session.dht_get_item(nodeId);
         m_session.dht_direct_request( endpoint, e, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
     }
 };

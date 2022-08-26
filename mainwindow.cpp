@@ -27,7 +27,7 @@ boost::asio::ip::udp::endpoint MainWindow::uep(char const* ip, uint16_t port)
 void MainWindow::createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate )
 {
     LOG("Creating session pointer...");
-    m_sessionWrapperPtr = std::make_shared<SessionWrapper>( addressAndPort, delegate );
+    m_sessionWrapperPtr = std::make_shared<SessionWrapper>( addressAndPort, delegate, m_username );
 };
 
 void MainWindow::onMessage( const std::string& messageText, boost::asio::ip::udp::endpoint senderEndpoint )
