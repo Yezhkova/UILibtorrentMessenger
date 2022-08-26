@@ -191,33 +191,9 @@ public:
         libtorrent::dht::dht_state dhtState = m_session.getDhtState();
         for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
         {
-            LOG("ID: " << it->second);
+            LOG("Address: " << it->first << ", ID: " << it->second);
         }
-
-
-//        sessionImpl->has_dht(); // non-inline function defined in .cpp doesn't link
-
-        // in session_impl add function to reach dht -> to comments
-//        libtorrent::dht::dht_tracker * dhtTracker = sessionImpl->dht();
-
-//        dhtTracker->stop(); // non-inline function defined in .cpp doesn't link
-//        auto vectorNodes = dhtTracker->state();
-
-
-
-
-
-
-
-//        libtorrent::dht::dht_state dhtState = dht->state();
-//        for(auto it = nidsVec.begin(); it != nidsVec.end(); ++it)
-//        {
-//            LOG("ID: " << it->second.to_string());
-//        }
-
-//        LOG("ID: " << m_session.get_settings().get_str(lt::settings_pack::peer_fingerprint));
         m_session.dht_direct_request( endpoint, e, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
-
     }
 };
 
