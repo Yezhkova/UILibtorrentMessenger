@@ -9,7 +9,7 @@ class UIDelegate : public SessionWrapperDelegate
 public:
 
     std::shared_ptr<SessionWrapper> m_sessionWrapperPtr = nullptr;
-    std::string                     m_username;
+//    std::string                     m_username;
     std::string                     m_address;
     uint16_t                        m_port;
 
