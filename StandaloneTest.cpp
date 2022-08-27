@@ -49,14 +49,15 @@ boost::asio::ip::udp::endpoint uep(char const* ip, uint16_t port)
 
 void standaloneTest()
 {
-    UIDelegate responderTestDel;
-    responderTestDel.createLtSessionPtr(IP ":11101", std::make_shared<UIDelegate> (responderTestDel), "user1");
+    UIDelegate responder;
+    responder.createLtSessionPtr(IP ":11101", std::make_shared<UIDelegate> (responder), "user1");
 
-    UIDelegate requesterTestDel;
-    requesterTestDel.createLtSessionPtr(IP_REQUESTER ":11102", std::make_shared<UIDelegate> (requesterTestDel), "user2");
+    UIDelegate requester;
+    requester.createLtSessionPtr(IP_REQUESTER ":11102", std::make_shared<UIDelegate> (requester), "user2");
 
     // successful request
-    Sleep(1000);
-    requesterTestDel.m_sessionWrapperPtr->sendMessage(uep( IP, 11101 ), "I send message"); // 2 -> 1
-    Sleep(5000);
+    Sleep(30000);
+//    requesterTestDel.m_sessionWrapperPtr->sendMessage(uep( IP, 11101 ), "I send message"); // 2 -> 1
+    requester.m_sessionWrapperPtr->getDhtItem(responder.m_sessionWrapperPtr->getPublicKey());
+    Sleep(5000*60);
 }

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <mutex>
+#include "utils.h"
 
 inline std::mutex gLogMutex;
 

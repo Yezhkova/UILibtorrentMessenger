@@ -27,6 +27,8 @@ set(PROJECT_SOURCES
 	SessionWrapperDelegate.hpp
 	SessionWrapper.hpp
         StandaloneTest.cpp
+        utils.h
+        utils.cpp
 )
 
 include_directories(C:/Users/Admin/source/repos/QtProjects/libtorrentCopy/include)

@@ -16,6 +16,9 @@ private:
     std::shared_ptr<SessionWrapperDelegate>   m_delegate;
     std::string                               m_addressAndPort;
     std::string                               m_username;
+    lt::dht::secret_key                       m_secretKey;
+    lt::dht::public_key                       m_publicKey;
+    libtorrent::digest32<160>                 m_nodeId;
 
     lt::settings_pack generateSessionSettings(std::string addressAndPort)
     {
@@ -42,58 +45,39 @@ public:
         m_username(username)
     {
         LOG("SessionWrapper ("<<m_username<<") initialized");
-        Sleep(1000); // unfortunately
-
-        libtorrent::dht::dht_state dhtState = m_session.getDhtState();
-        boost::asio::ip::address nodeAddress = dhtState.nids.begin()->first;
-        libtorrent::digest32<160> nodeId = dhtState.nids.begin()->second; // can there be more - ??????????????????????????????????????
-        LOG(m_username << ": "<< nodeId);
-//        for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
-//        {
-//            LOG("Address: " << it->first << ", ID: " << it->second);
-//        }
-
-//        bootstrap_session({&dht, &dht6}, m_session); // ?????????????????????????????????????????????????????????????????????????????
-
-//        std::array<char, 32> seed = libtorrent::dht::ed25519_create_seed(); // cryptographically random bytes - ?????????????????????
-        std::array<char, 32> seed;
-        lt::dht::secret_key sk;
-        lt::dht::public_key pk;
-//        std::tie(pk, sk) = lt::dht::ed25519_create_keypair(seed);
-
-        // use m_username as public key
-        for(int i = 0; i < m_username.length(); ++i)
-        {
-            pk.bytes[i] = m_username[i];
-        }
-        // rest is '0'
-        std::fill(pk.bytes.begin()+m_username.length(), pk.bytes.end(), '0');
-//        LOG("public key (" << m_username << ") :")
-//        for(int i = 0; i < pk.len; ++i)
-//        {
-//            LOG(i << '\t' << pk.bytes[i]);
-//        }
-        std::tie(pk, sk) = lt::dht::ed25519_create_keypair(seed);
-        m_session.dht_put_item(pk.bytes, [&](lt::entry& item, std::array<char, 64>& sig
-            , std::int64_t& seq, std::string const& salt)
-        {
-            item = nodeId;
-            seq = 1;
-            std::vector<char> v;
-            lt::bencode(std::back_inserter(v), item);
-            lt::dht::signature sign = lt::dht::sign_mutable_item(v, salt
-                , lt::dht::sequence_number(seq), pk, sk);
-//            put_count++; // earlier: int put_count = 0;
-            sig = sign.bytes;
-        }, nodeAddress.to_string());
-        Sleep(1000);
-
     }
 
     virtual void start() override
     {
         m_session.set_alert_notify( [this] { this->alertHandler(); } );
         m_session.add_extension(std::make_shared<DhtRequestHandler>(m_delegate));
+        Sleep(1000); // unfortunately
+        libtorrent::dht::dht_state dhtState = m_session.getDhtState();
+        boost::asio::ip::address nodeAddress = dhtState.nids.begin()->first;
+        m_nodeId = dhtState.nids.begin()->second; // can there be more - ??????????????????????????????????????
+//        LOG(m_username << ": "<< m_nodeId);
+//        for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
+//        {
+//            LOG("Address: " << it->first << ", ID: " << it->second);
+//        }
+        std::array<char, 32> seed = libtorrent::dht::ed25519_create_seed();
+        std::tie(m_publicKey, m_secretKey) = lt::dht::ed25519_create_keypair(seed);
+        LOG("public key (" << m_username << ") :"<< toString(m_publicKey.bytes));
+        m_session.dht_put_item(m_publicKey.bytes, [this](lt::entry& item, std::array<char, 64>& sig
+            , std::int64_t& seq, std::string const& salt)
+        {
+            item = "mutable item";//m_nodeId.to_string();
+            seq=0;
+            LOG("item after init: "<<item);
+            LOG("public key after init:" << toString(m_publicKey.bytes));
+            LOG("secret key after init:" << toString(m_secretKey.bytes));
+
+            std::vector<char> v;
+            lt::bencode(std::back_inserter(v), item);
+            lt::dht::signature sign = lt::dht::sign_mutable_item(v, salt
+                , lt::dht::sequence_number(seq), m_publicKey, m_secretKey);
+            sig = sign.bytes;
+        });
     }
 
     void alertHandler()
@@ -123,12 +107,28 @@ public:
                 case lt::dht_mutable_item_alert::alert_type:
                 {
                     auto* theAlert = dynamic_cast<lt::dht_mutable_item_alert*>(alert);
-                    LOG("Salt: " << theAlert->salt);
-                    LOG("Id: " << theAlert->item);
+                    LOG("Salt:" << theAlert->salt);
+                    LOG("Item:" << theAlert->item);
+                    LOG("Key:" << toString(theAlert->key));
+                    LOG("Sequence :"<<theAlert->seq);
+                    LOG("DHT state");
+                    libtorrent::dht::dht_state dhtState = m_session.getDhtState();
+                    boost::asio::ip::address nodeAddress = dhtState.nids.begin()->first;
+                    auto nodeId = dhtState.nids.begin()->second; // can there be more - ??????????????????????????????????????
+                    LOG("Size: "<<dhtState.nids.size());
+                    LOG(m_username << ": "<< m_nodeId);
+                    for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
+                    {
+                        LOG("Address: " << it->first << ", ID: " << it->second);
+                    }
+
+
+
 //                    if ( theAlert->salt == "endpoint" )
                     {
                     }
                     break;
+                    //send dht request "find_node" from here
                 }
 
                 case lt::dht_direct_response_alert::alert_type:
@@ -235,21 +235,25 @@ public:
 
     virtual void sendMessage( boost::asio::ip::udp::endpoint endpoint, const std::string& text ) override
     {
-        std::array<char, 32> key;
-        std::string userToFind = "user1";
-        for(int i = 0; i < m_username.length(); ++i)
-        {
-            key[i] = m_username[i];
-        }
-        std::fill(key.begin()+m_username.length(), key.end(), '0');
-        m_session.dht_get_item(key);
+//        m_session.dht_get_item(key);
 
-//        libtorrent::entry e;
-//        e["y"] = "q";
-//        e["q"] = "msg";
-//        e["txt"] = text;
+        libtorrent::entry e;
+        e["y"] = "q";
+        e["q"] = "msg";
+        e["txt"] = text;
 
-//        m_session.dht_direct_request( endpoint, e, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
+        m_session.dht_direct_request( endpoint, e, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
     }
+
+    virtual void getDhtItem(const lt::dht::public_key & key) override
+    {
+        m_session.dht_get_item(key.bytes);
+    }
+
+    virtual const lt::dht::public_key & getPublicKey() const override
+    {
+        return m_publicKey;
+    }
+
 };
 
