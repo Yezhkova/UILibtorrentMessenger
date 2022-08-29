@@ -59,5 +59,5 @@ void standaloneTest()
     Sleep(30000);
 //    requesterTestDel.m_sessionWrapperPtr->sendMessage(uep( IP, 11101 ), "I send message"); // 2 -> 1
     requester.m_sessionWrapperPtr->getDhtItem(responder.m_sessionWrapperPtr->getPublicKey());
-    Sleep(5000*60);
+    Sleep(5000*30);
 }

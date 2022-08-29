@@ -55,7 +55,7 @@ public:
         libtorrent::dht::dht_state dhtState = m_session.getDhtState();
         boost::asio::ip::address nodeAddress = dhtState.nids.begin()->first;
         m_nodeId = dhtState.nids.begin()->second; // can there be more - ??????????????????????????????????????
-//        LOG(m_username << ": "<< m_nodeId);
+        LOG(m_username << ": "<< m_nodeId);
 //        for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
 //        {
 //            LOG("Address: " << it->first << ", ID: " << it->second);
@@ -66,18 +66,17 @@ public:
         m_session.dht_put_item(m_publicKey.bytes, [this](lt::entry& item, std::array<char, 64>& sig
             , std::int64_t& seq, std::string const& salt)
         {
-            item = "mutable item";//m_nodeId.to_string();
+            item = m_nodeId.to_string();
             seq=0;
-            LOG("item after init: "<<item);
-            LOG("public key after init:" << toString(m_publicKey.bytes));
-            LOG("secret key after init:" << toString(m_secretKey.bytes));
-
+//            LOG("item after init: "<<item);
+//            LOG("public key after init:" << toString(m_publicKey.bytes));
+//            LOG("secret key after init:" << toString(m_secretKey.bytes));
             std::vector<char> v;
             lt::bencode(std::back_inserter(v), item);
             lt::dht::signature sign = lt::dht::sign_mutable_item(v, salt
                 , lt::dht::sequence_number(seq), m_publicKey, m_secretKey);
             sig = sign.bytes;
-        });
+        }, "id");
     }
 
     void alertHandler()
@@ -106,23 +105,32 @@ public:
 
                 case lt::dht_mutable_item_alert::alert_type:
                 {
+                    LOG("Got dht item");
                     auto* theAlert = dynamic_cast<lt::dht_mutable_item_alert*>(alert);
-                    LOG("Salt:" << theAlert->salt);
-                    LOG("Item:" << theAlert->item);
-                    LOG("Key:" << toString(theAlert->key));
-                    LOG("Sequence :"<<theAlert->seq);
-                    LOG("DHT state");
-                    libtorrent::dht::dht_state dhtState = m_session.getDhtState();
-                    boost::asio::ip::address nodeAddress = dhtState.nids.begin()->first;
-                    auto nodeId = dhtState.nids.begin()->second; // can there be more - ??????????????????????????????????????
-                    LOG("Size: "<<dhtState.nids.size());
-                    LOG(m_username << ": "<< m_nodeId);
-                    for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
-                    {
-                        LOG("Address: " << it->first << ", ID: " << it->second);
-                    }
+                    auto nodeId = theAlert->item;
+                    LOG("nodeId length: "<<nodeId.to_string()<<"     "<< nodeId.string().length());
+                    lt::entry requestEntry;
+                    requestEntry["y"] = "q";
+                    requestEntry["q"] = "find_node";
+                    requestEntry["a"]["target"] = nodeId.to_string();
+                    boost::asio::ip::udp::endpoint bootstrapNodeEdp( boost::asio::ip::make_address("185.157.221.247"), 25401 );
+//                    boost::asio::ip::udp::endpoint bootstrapNodeEdp( boost::asio::ip::make_address("192.168.1.10"), 11101 );
 
-
+                    m_session.dht_direct_request( bootstrapNodeEdp, requestEntry, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
+//                    LOG("Salt:" << theAlert->salt);
+//                    LOG("Item:" << theAlert->item);
+//                    LOG("Key:" << toString(theAlert->key));
+//                    LOG("Sequence :"<<theAlert->seq);
+//                    LOG("DHT state");
+//                    libtorrent::dht::dht_state dhtState = m_session.getDhtState();
+//                    boost::asio::ip::address nodeAddress = dhtState.nids.begin()->first;
+//                    auto nodeId = dhtState.nids.begin()->second; // can there be more - ??????????????????????????????????????
+//                    LOG("Size of dhtState.nids vector: "<<dhtState.nids.size());
+//                    LOG(m_username << ": "<< m_nodeId);
+//                    for(auto it = dhtState.nids.begin(); it != dhtState.nids.end(); ++it)
+//                    {
+//                        LOG("In .nids: Address: " << it->first << ", ID: " << it->second);
+//                    }
 
 //                    if ( theAlert->salt == "endpoint" )
                     {
@@ -133,25 +141,40 @@ public:
 
                 case lt::dht_direct_response_alert::alert_type:
                 {
-                LOG("_________________LOG");
+//                LOG("direct_response_alert__________________________________LOG");
                      if ( auto* theAlert = dynamic_cast<lt::dht_direct_response_alert*>(alert); theAlert )
                      {
                          auto response = theAlert->response();
-                         LOG("response: " << response);
 
                          if ( response.type() == lt::bdecode_node::dict_t )
                          {
                              auto rDict = response.dict_find_dict("r");
+                             auto nodesInResponse = rDict.dict_find("nodes");
+                             auto idInResponse = rDict.dict_find("id");
+                             LOG("rDict: "<<rDict);
+                             LOG("idInResponse: "<<idInResponse);
 
-                             if ( rDict.type() == lt::bdecode_node::dict_t )
+                             LOG("type: "<<nodesInResponse.type());
+                             auto sth = nodesInResponse.string_length();
+                             LOG("string_length: "<<sth);
+                             LOG("nodesInResponse: "<<nodesInResponse);
+                             lt::string_view strVal = nodesInResponse.string_value();
+
+                             for(size_t offset = 0; offset < nodesInResponse.string_length(); offset += 26)
                              {
-                                 auto query = rDict.dict_find_string_value("q");
+                                 LOG("BGYUI");
+                                 lt::digest32<160> id;
+                                 std::memcpy(id.data(), strVal.data()+offset, 20);
 
-                                 if ( query == "msg" )
-                                 {
-                                     auto id = (uint64_t) theAlert->userdata.get<void>();
-                                     m_delegate->onReply( (uint32_t)id );
-                                 }
+                                 std::string addr = std::string()
+                                         + std::to_string(strVal[offset+20]) + "."
+                                         + std::to_string(strVal[offset+21]) + "."
+                                         + std::to_string(strVal[offset+22]) + "."
+                                         + std::to_string(strVal[offset+23]);
+                                 int port = (strVal[offset+20]<<8) | strVal[offset+20];
+                                 boost::asio::ip::udp::endpoint endpoint( boost::asio::ip::make_address(addr.c_str()), port);
+
+                                 LOG( "id: " << id << " port: " << port << " addr " << addr );
                              }
                         }
                         else
@@ -247,7 +270,7 @@ public:
 
     virtual void getDhtItem(const lt::dht::public_key & key) override
     {
-        m_session.dht_get_item(key.bytes);
+        m_session.dht_get_item(key.bytes, "id");
     }
 
     virtual const lt::dht::public_key & getPublicKey() const override

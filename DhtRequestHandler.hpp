@@ -28,16 +28,18 @@ public:
             lt::entry&                              response )
         override
     {
+        LOG("sent query "<<query<< " (" <<senderEndpoint<<")");
+        return true;
 //        LOG("on_dht_request() [q]: " << dict.dict_find_string_value("q") << ", sender: " << senderEndpoint);
 //        LOG("Dictionary: " << dict);
-        if (dict.dict_find_string_value("q") == "msg")
-        {
-            auto txt = dict.dict_find_string_value("txt");
-            LOG("Received message \"" << std::string(txt) << "\" from " << senderEndpoint);
-            m_delegate->onMessage(std::string(txt), senderEndpoint);
-            response["r"]["msg"] = 1;
-            return true;
-        }
+//        if (dict.dict_find_string_value("q") == "msg")
+//        {
+//            auto txt = dict.dict_find_string_value("txt");
+//            LOG("Received message \"" << std::string(txt) << "\" from " << senderEndpoint);
+//            m_delegate->onMessage(std::string(txt), senderEndpoint);
+//            response["r"]["msg"] = 1;
+//            return true;
+//        }
         return false;
     }
 };
