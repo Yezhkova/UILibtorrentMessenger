@@ -8,6 +8,7 @@
 
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/kademlia/item.hpp"
+#include "libtorrent/kademlia/msg.hpp"
 
 class SessionWrapper : public SessionWrapperAbstract
 {
@@ -85,6 +86,7 @@ public:
         m_session.pop_alerts(&alerts);
         for (auto &alert : alerts)
         {
+
 // For debugging!!!
 //
 //            LOG(  m_addressAndPort << ":  " << alert->what() << " (type="<< alert->type() <<"):  " << alert->message() );
@@ -105,7 +107,6 @@ public:
 
                 case lt::dht_mutable_item_alert::alert_type:
                 {
-                    LOG("Got dht item");
                     auto* theAlert = dynamic_cast<lt::dht_mutable_item_alert*>(alert);
                     auto nodeId = theAlert->item;
                     LOG("nodeId length: "<<nodeId.to_string()<<"     "<< nodeId.string().length());
@@ -141,6 +142,8 @@ public:
 
                 case lt::dht_direct_response_alert::alert_type:
                 {
+//                m_session.setReplyHandle(f())
+
 //                LOG("direct_response_alert__________________________________LOG");
                      if ( auto* theAlert = dynamic_cast<lt::dht_direct_response_alert*>(alert); theAlert )
                      {
@@ -160,22 +163,22 @@ public:
                              LOG("nodesInResponse: "<<nodesInResponse);
                              lt::string_view strVal = nodesInResponse.string_value();
 
-                             for(size_t offset = 0; offset < nodesInResponse.string_length(); offset += 26)
-                             {
-                                 LOG("BGYUI");
-                                 lt::digest32<160> id;
-                                 std::memcpy(id.data(), strVal.data()+offset, 20);
+//                             for(size_t offset = 0; offset < nodesInResponse.string_length(); offset += 26)
+//                             {
+//                                 LOG("BGYUI");
+//                                 lt::digest32<160> id;
+//                                 std::memcpy(id.data(), strVal.data()+offset, 20);
 
-                                 std::string addr = std::string()
-                                         + std::to_string(strVal[offset+20]) + "."
-                                         + std::to_string(strVal[offset+21]) + "."
-                                         + std::to_string(strVal[offset+22]) + "."
-                                         + std::to_string(strVal[offset+23]);
-                                 int port = (strVal[offset+20]<<8) | strVal[offset+20];
-                                 boost::asio::ip::udp::endpoint endpoint( boost::asio::ip::make_address(addr.c_str()), port);
+//                                 std::string addr = std::string()
+//                                         + std::to_string(strVal[offset+20]) + "."
+//                                         + std::to_string(strVal[offset+21]) + "."
+//                                         + std::to_string(strVal[offset+22]) + "."
+//                                         + std::to_string(strVal[offset+23]);
+//                                 int port = (strVal[offset+20]<<8) | strVal[offset+20];
+//                                 boost::asio::ip::udp::endpoint endpoint( boost::asio::ip::make_address(addr.c_str()), port);
 
-                                 LOG( "id: " << id << " port: " << port << " addr " << addr );
-                             }
+//                                 LOG( "id: " << id << " port: " << port << " addr " << addr );
+//                             }
                         }
                         else
                         {
@@ -254,6 +257,11 @@ public:
             }
         }
 
+    }
+
+    void setResponseHandler (std::function<void(const lt::dht::msg &)> f)
+    {
+        m_session.setResponseHandler(f);
     }
 
     virtual void sendMessage( boost::asio::ip::udp::endpoint endpoint, const std::string& text ) override

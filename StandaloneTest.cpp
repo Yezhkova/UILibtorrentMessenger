@@ -47,6 +47,11 @@ boost::asio::ip::udp::endpoint uep(char const* ip, uint16_t port)
     return ret;
 }
 
+void responseHandler(const lt::dht::msg & msg)
+{
+    LOG("response: message: "<< msg.message << ", address: " << msg.addr);
+}
+
 void standaloneTest()
 {
     UIDelegate responder;
@@ -54,7 +59,7 @@ void standaloneTest()
 
     UIDelegate requester;
     requester.createLtSessionPtr(IP_REQUESTER ":11102", std::make_shared<UIDelegate> (requester), "user2");
-
+    requester.m_sessionWrapperPtr->setResponseHandler(responseHandler);
     // successful request
     Sleep(30000);
 //    requesterTestDel.m_sessionWrapperPtr->sendMessage(uep( IP, 11101 ), "I send message"); // 2 -> 1
