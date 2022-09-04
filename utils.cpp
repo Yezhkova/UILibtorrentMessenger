@@ -58,3 +58,15 @@ std::string toString( const std::array<char,64>& key ) {
 
     return std::string( hashStr, hashStr+128 );
 }
+
+std::string toString( const char * ptr, size_t size) {
+
+    std::string hashStr(size * 2, '0');
+
+    for( size_t i=0; i<size; i++ ) {
+        hashStr[2*i]   = byteMap[uint8_t(ptr[i])][0];
+        hashStr[2*i+1] = byteMap[uint8_t(ptr[i])][1];
+    }
+
+    return hashStr;
+}

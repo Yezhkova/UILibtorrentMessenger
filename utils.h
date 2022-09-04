@@ -10,3 +10,6 @@ std::string toString( const std::array<char,32>& key );
 
 std::string toString( const std::array<char,64>& key );
 
+std::string toString( const char * ptr, size_t size);
+
+

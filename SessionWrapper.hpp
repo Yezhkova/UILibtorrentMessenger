@@ -20,6 +20,7 @@ private:
     lt::dht::secret_key                       m_secretKey;
     lt::dht::public_key                       m_publicKey;
     libtorrent::digest32<160>                 m_nodeId;
+    std::string                               m_nodeIdRequested = "";
 
     lt::settings_pack generateSessionSettings(std::string addressAndPort)
     {
@@ -47,6 +48,10 @@ public:
     {
         LOG("SessionWrapper ("<<m_username<<") initialized");
     }
+    lt::session * getSession()
+    {
+        return & m_session;
+    }
 
     virtual void start() override
     {
@@ -69,9 +74,6 @@ public:
         {
             item = m_nodeId.to_string();
             seq=0;
-//            LOG("item after init: "<<item);
-//            LOG("public key after init:" << toString(m_publicKey.bytes));
-//            LOG("secret key after init:" << toString(m_secretKey.bytes));
             std::vector<char> v;
             lt::bencode(std::back_inserter(v), item);
             lt::dht::signature sign = lt::dht::sign_mutable_item(v, salt
@@ -108,16 +110,10 @@ public:
                 case lt::dht_mutable_item_alert::alert_type:
                 {
                     auto* theAlert = dynamic_cast<lt::dht_mutable_item_alert*>(alert);
-                    auto nodeId = theAlert->item;
-                    LOG("nodeId length: "<<nodeId.to_string()<<"     "<< nodeId.string().length());
-                    lt::entry requestEntry;
-                    requestEntry["y"] = "q";
-                    requestEntry["q"] = "find_node";
-                    requestEntry["a"]["target"] = nodeId.to_string();
-                    boost::asio::ip::udp::endpoint bootstrapNodeEdp( boost::asio::ip::make_address("185.157.221.247"), 25401 );
-//                    boost::asio::ip::udp::endpoint bootstrapNodeEdp( boost::asio::ip::make_address("192.168.1.10"), 11101 );
+                    m_nodeIdRequested = theAlert->item.to_string();
+                    LOG("nodeIdRequested + .length: "<<m_nodeIdRequested<<"     "<< m_nodeIdRequested.length());
 
-                    m_session.dht_direct_request( bootstrapNodeEdp, requestEntry, libtorrent::client_data_t(reinterpret_cast<int*>(12345)) );
+
 //                    LOG("Salt:" << theAlert->salt);
 //                    LOG("Item:" << theAlert->item);
 //                    LOG("Key:" << toString(theAlert->key));
@@ -132,18 +128,14 @@ public:
 //                    {
 //                        LOG("In .nids: Address: " << it->first << ", ID: " << it->second);
 //                    }
-
 //                    if ( theAlert->salt == "endpoint" )
                     {
                     }
                     break;
-                    //send dht request "find_node" from here
                 }
 
                 case lt::dht_direct_response_alert::alert_type:
                 {
-//                m_session.setReplyHandle(f())
-
 //                LOG("direct_response_alert__________________________________LOG");
                      if ( auto* theAlert = dynamic_cast<lt::dht_direct_response_alert*>(alert); theAlert )
                      {
@@ -163,26 +155,27 @@ public:
                              LOG("nodesInResponse: "<<nodesInResponse);
                              lt::string_view strVal = nodesInResponse.string_value();
 
-//                             for(size_t offset = 0; offset < nodesInResponse.string_length(); offset += 26)
-//                             {
-//                                 LOG("BGYUI");
-//                                 lt::digest32<160> id;
-//                                 std::memcpy(id.data(), strVal.data()+offset, 20);
+                             for(size_t offset = 0; offset < nodesInResponse.string_length(); offset += 26)
+                             {
+                                 LOG("--------------------------------------");
+                                 lt::digest32<160> id;
+                                 std::memcpy(id.data(), strVal.data()+offset, 20);
 
-//                                 std::string addr = std::string()
-//                                         + std::to_string(strVal[offset+20]) + "."
-//                                         + std::to_string(strVal[offset+21]) + "."
-//                                         + std::to_string(strVal[offset+22]) + "."
-//                                         + std::to_string(strVal[offset+23]);
-//                                 int port = (strVal[offset+20]<<8) | strVal[offset+20];
-//                                 boost::asio::ip::udp::endpoint endpoint( boost::asio::ip::make_address(addr.c_str()), port);
+                                 std::string addr = std::string()
+                                         + std::to_string((uint8_t)strVal[offset+20]) + "."
+                                         + std::to_string((uint8_t)strVal[offset+21]) + "."
+                                         + std::to_string((uint8_t)strVal[offset+22]) + "."
+                                         + std::to_string((uint8_t)strVal[offset+23]);
+                                 int port = uint8_t(strVal[offset+20]<<8) | uint8_t(strVal[offset+20]);
+                                 boost::asio::ip::udp::endpoint endpoint( boost::asio::ip::make_address(addr.c_str()), port);
 
-//                                 LOG( "id: " << id << " port: " << port << " addr " << addr );
-//                             }
+                                 LOG( "id: " << id << " port: " << port << " addr " << addr );
+                             }
                         }
                         else
                         {
                             LOG( "*** bad dht_direct_response_alert: " << theAlert->what() << ":("<< alert->type() <<")  " << theAlert->message() );
+                            LOG("bad response: "<<response);
                         }
                      }
                      break;
@@ -259,6 +252,11 @@ public:
 
     }
 
+    std::string getNodeIdRequested()
+    {
+        return m_nodeIdRequested;
+    }
+
     void setResponseHandler (std::function<void(const lt::dht::msg &)> f)
     {
         m_session.setResponseHandler(f);
@@ -266,8 +264,6 @@ public:
 
     virtual void sendMessage( boost::asio::ip::udp::endpoint endpoint, const std::string& text ) override
     {
-//        m_session.dht_get_item(key);
-
         libtorrent::entry e;
         e["y"] = "q";
         e["q"] = "msg";
