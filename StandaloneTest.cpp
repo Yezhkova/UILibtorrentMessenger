@@ -3,9 +3,11 @@
 #define IP_REQUESTER  "192.168.1.20"
 
 
-lt::session * g_sessionToSendFindNode = nullptr;
+// for void responseHandler(const lt::dht::msg & msg)
+
+//lt::session * g_sessionToSendFindNode = nullptr;
 lt::dht::public_key g_publicKeyRequested;
-std::string g_nodeIdRequested = "";
+//std::string g_nodeIdRequested = "";
 
 class UIDelegate : public SessionWrapperDelegate
 
@@ -57,7 +59,7 @@ boost::asio::ip::udp::endpoint uep(char const* ip, uint16_t port)
     return ret;
 }
 
-void responseHandler(const lt::dht::msg & msg)
+/*void responseHandler(const lt::dht::msg & msg)
 {
     // if k = id -> find node
 
@@ -93,10 +95,9 @@ void responseHandler(const lt::dht::msg & msg)
     }
     catch (...)
     {
-
-
     }
 }
+*/
 
 void standaloneTest()
 {
@@ -109,11 +110,13 @@ void standaloneTest()
     // successful request
     Sleep(30000);
 //    requesterTestDel.m_sessionWrapperPtr->sendMessage(uep( IP, 11101 ), "I send message"); // 2 -> 1
-    g_sessionToSendFindNode = requester.m_sessionWrapperPtr->getSession();
+//    g_sessionToSendFindNode = requester.m_sessionWrapperPtr->getSession();
     g_publicKeyRequested = responder.m_sessionWrapperPtr->getPublicKey();
     requester.m_sessionWrapperPtr->getDhtItem(g_publicKeyRequested);
-    g_nodeIdRequested = requester.m_sessionWrapperPtr->getNodeIdRequested();
-    requester.m_sessionWrapperPtr->setResponseHandler(responseHandler);
+//    g_nodeIdRequested = requester.m_sessionWrapperPtr->getNodeIdRequested();
+
+//    for void responseHandler(const lt::dht::msg & msg):
+//    requester.m_sessionWrapperPtr->setResponseHandler(responseHandler);
 
     Sleep(5000*10);
 }
