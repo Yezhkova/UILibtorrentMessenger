@@ -118,5 +118,5 @@ void standaloneTest()
 //    for void responseHandler(const lt::dht::msg & msg):
 //    requester.m_sessionWrapperPtr->setResponseHandler(responseHandler);
 
-    Sleep(5000*10);
+    Sleep(5000*100);
 }

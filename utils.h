@@ -17,13 +17,8 @@ std::string toString( const char * ptr, size_t size);
 struct ReferenceNode
 {
     lt::digest32<160> m_id;
+    lt::digest32<160> m_ref;
     boost::asio::ip::udp::endpoint m_endpoint;
-
-    ReferenceNode(lt::digest32<160> id, boost::asio::ip::udp::endpoint endpoint): m_id(id), m_endpoint(endpoint) {}
-    bool operator < (const ReferenceNode & b)
-    {
-        return false;
-    }
 };
 
 

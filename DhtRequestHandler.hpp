@@ -28,7 +28,7 @@ public:
             lt::entry&                              response )
         override
     {
-        LOG("sent query "<<query<< " (" <<senderEndpoint<<")");
+//        LOG("sent query "<<query<< " (" <<senderEndpoint<<")");
         return true;
 //        LOG("on_dht_request() [q]: " << dict.dict_find_string_value("q") << ", sender: " << senderEndpoint);
 //        LOG("Dictionary: " << dict);
@@ -40,6 +40,6 @@ public:
 //            response["r"]["msg"] = 1;
 //            return true;
 //        }
-        return false;
+//        return false;
     }
 };
