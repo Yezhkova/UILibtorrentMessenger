@@ -27,6 +27,8 @@ struct Cmp {
 
 class SessionWrapper : public SessionWrapperAbstract
 {
+public:
+    uint32_t NUMNODES = 0;
 private:
     libtorrent::session                       m_session;
     std::shared_ptr<SessionWrapperDelegate>   m_delegate;
@@ -150,16 +152,17 @@ public:
                 {
                     auto* theAlert = dynamic_cast<lt::dht_mutable_item_alert*>(alert);
                     m_nodeIdRequested = theAlert->item.string();
+//                    std::string tmp = theAlert->item.to_string(); // my id
+//                    m_nodeIdRequested = tmp.substr(1, tmp.length()-2);
                     LOG("nodeIdRequested + .length: "<<m_nodeIdRequested<<"     "<< m_nodeIdRequested.length()<<'\n'<<"Sending find_node query");
                     boost::asio::ip::udp::endpoint bootstrapNodeEndpoint(
                                 boost::asio::ip::make_address( BOOTSTRAP_NODE_IP ), BOOTSTRAP_NODE_PORT );
 
                     DhtClientData * clientDataPtr = new DhtClientData(m_nodeIdRequested);
-                    LOG("m_responseDistribution: "<<clientDataPtr->m_responseDistribution);
-                    clientDataPtr->m_requiredNodeId = m_nodeIdRequested;
+//                    clientDataPtr->m_requiredNodeId = m_nodeIdRequested;
                     clientDataPtr->m_type = DhtClientData::Type::t_find_node;
                     m_dhtClientDataSet.insert(clientDataPtr);
-                    LOG("clientDataPtr == nullptr: "<< (clientDataPtr == nullptr));
+//                    LOG("clientDataPtr == nullptr: "<< (clientDataPtr == nullptr));
                     sendFindNodeRequest(bootstrapNodeEndpoint, m_nodeIdRequested, clientDataPtr);
                     break;
                 }
@@ -174,61 +177,64 @@ public:
                              lt::bdecode_node rDict = response.dict_find_dict("r");
                              if(rDict.type() != lt::bdecode_node::type_t::dict_t)
                              {
+                                 LOG("response.dict_find_dict(\"r\") is not dict_t");
                                  return;
                              }
 
                              lt::bdecode_node nodesInResponse = rDict.dict_find("nodes");
                              if(nodesInResponse.type() != lt::bdecode_node::type_t::string_t)
                              {
+                                 LOG("rDict.dict_find(\"nodes\") is not string_t");
                                  return;
                              }
                              lt::bdecode_node idInResponse = rDict.dict_find("id");
 //                             LOG("idInResponse: " << idInResponse);
                              std::set<ReferenceNode, Cmp> refNodes = parseNodes(nodesInResponse);
-                             LOG("nodes to ask:");
-                             for(auto it = refNodes.begin(); it != refNodes.end(); ++it)
-                             {
-                                 LOG(it->m_id);
-                             }
                              if(refNodes.size() == 0)
                              {
+                                 LOG("No nodes to ask");
                                  return;
                              }
 
+//                             LOG("nodes to ask:");
+//                             for(auto it = refNodes.begin(); it != refNodes.end(); ++it)
+//                             {
+//                                 LOG(it->m_id.data() << ' ' << it->m_endpoint );
+//                             }
+
                              for(auto it = refNodes.begin(); it != refNodes.end(); ++it)
                              {
-                                 if(it->m_id.data() == m_nodeIdRequested.c_str())
+                                 if(idEqual(it->m_id, m_nodeIdRequested))
                                  {
-                                     LOG("found " << m_nodeIdRequested);
+                                     LOG("found " << it->m_id <<" ("<< NUMNODES << ")");
                                      exit(0);
-//                                     return;
                                  }
 
-                                 auto clientDataPtr = theAlert->userdata.get<DhtClientData>();
-                                 if(clientDataPtr == nullptr) {
-                                     LOG("clientDataPtr from " << it->m_id << " is nullptr");
-                                     return;
-                                 }
-                                 int equals = clientDataPtr->comparePrefixes(std::string{it->m_id.data()}); // compare to vector
-                                 LOG(it->m_id << " " << equals << " coincidences");
-                                 assert (equals < 20);
-                                 if(clientDataPtr->m_responseDistribution[equals] < 255) // [ 9 6 (0) 2 1 0 0 0 ]
-                                 {
-                                     clientDataPtr->m_responseDistribution[equals]++;
-                                 }
-//                                 m_dhtClientDataSet.insert(clientDataPtr);
-//                                 LOG("m_responseDistribution: "<<clientDataPtr->m_responseDistribution); ??????????????????
-                                 for(int i = equals+1; i < 20 ; ++i)
-                                 {
-                                     if(clientDataPtr->m_responseDistribution[i] > equals) // (3)
-                                     {
-                                         goto skip;
-                                     }
-                                 }
-                                 LOG(it->m_id << "    ->    " << it->m_endpoint );
-                                 LOG("clientDataPtr == nullptr: "<< (clientDataPtr == nullptr));
+//                                 auto clientDataPtr = theAlert->userdata.get<DhtClientData>();
+//                                 if(clientDataPtr == nullptr) {
+//                                     LOG("clientDataPtr from " << it->m_id << " is nullptr");
+//                                     return;
+//                                 }
+//                                 int equals = clientDataPtr->comparePrefixes(std::string{it->m_id.data()}); // compare to vector
+//                                 LOG(it->m_id << " " << equals << " coincidences");
+//                                 assert (equals < 20);
+//                                 if(clientDataPtr->m_responseDistribution[equals] < 255) // [ 9 6 (0) 2 1 0 0 0 ]
+//                                 {
+//                                     clientDataPtr->m_responseDistribution[equals]++;
+//                                 }
+////                                 m_dhtClientDataSet.insert(clientDataPtr);
+////                                 LOG("m_responseDistribution: "<<clientDataPtr->m_responseDistribution); ??????????????????
+//                                 for(int i = equals+1; i < 20 ; ++i)
+//                                 {
+//                                     if(clientDataPtr->m_responseDistribution[i] > equals) // (3)
+//                                     {
+//                                         goto skip;
+//                                     }
+//                                 }
+//                                 LOG(it->m_id << "    ->    " << it->m_endpoint );
+                                 auto clientDataPtr = new DhtClientData(m_nodeIdRequested);
                                  sendFindNodeRequest(it->m_endpoint, m_nodeIdRequested, clientDataPtr);
-                                 skip:;
+//                                 skip:;
                              }
                         }
                         else
@@ -323,6 +329,19 @@ public:
     }
     */
 
+    bool idEqual(const lt::digest32<160> & id, const std::string & ref)
+    {
+//        return id == lt::digest32<160>(ref);
+        for(int i = 0; i < 20; ++i)
+        {
+            if (id[i] != uint8_t(ref[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     std::set<ReferenceNode, Cmp> parseNodes(lt::bdecode_node nodesStr)
     {
         std::set<ReferenceNode, Cmp> ans;
@@ -345,7 +364,8 @@ public:
 
     void sendFindNodeRequest(boost::asio::ip::udp::endpoint endpoint, const std::string & node, DhtClientData * clientDataPtr)
     {
-        LOG("sendFindNodeRequest to endpoint: " << endpoint << ", node: " << node);
+        ++NUMNODES;
+//        LOG("sendFindNodeRequest to endpoint: " << endpoint << ", node: " << node);
         lt::entry requestEntry;
         requestEntry["y"] = "q";
         requestEntry["q"] = "find_node";

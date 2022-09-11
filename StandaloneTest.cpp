@@ -111,7 +111,7 @@ void standaloneTest()
     Sleep(30000);
 //    requesterTestDel.m_sessionWrapperPtr->sendMessage(uep( IP, 11101 ), "I send message"); // 2 -> 1
 //    g_sessionToSendFindNode = requester.m_sessionWrapperPtr->getSession();
-    g_publicKeyRequested = responder.m_sessionWrapperPtr->getPublicKey();
+    g_publicKeyRequested = requester.m_sessionWrapperPtr->getPublicKey();
     requester.m_sessionWrapperPtr->getDhtItem(g_publicKeyRequested);
 //    g_nodeIdRequested = requester.m_sessionWrapperPtr->getNodeIdRequested();
 
