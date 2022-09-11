@@ -37,7 +37,6 @@ private:
     libtorrent::digest32<160>                 m_nodeId;
 //    for void responseHandler(const lt::dht::msg & msg):
     std::string                               m_nodeIdRequested;
-private:
     struct DhtClientData
     {
         DhtClientData(std::string requestedNodeId) : m_requiredNodeId(requestedNodeId)
@@ -54,9 +53,18 @@ private:
         std::string m_requiredNodeId;
         uint8_t m_responseDistribution[20];
 //        int m_depth;
+        int comparePrefixes(const std::string & id)
+        {
+            int counter = 0;
+            for(int i = 0; id[i] == m_requiredNodeId[i]; ++i)
+            {
+                ++counter;
+            }
+            return counter;
+        };
     };
 
-    std::set<DhtClientData * > m_dhtClientData;
+    std::set<DhtClientData * > m_dhtClientDataSet;
 
     lt::settings_pack generateSessionSettings(std::string addressAndPort)
     {
@@ -145,9 +153,13 @@ public:
                     LOG("nodeIdRequested + .length: "<<m_nodeIdRequested<<"     "<< m_nodeIdRequested.length()<<'\n'<<"Sending find_node query");
                     boost::asio::ip::udp::endpoint bootstrapNodeEndpoint(
                                 boost::asio::ip::make_address( BOOTSTRAP_NODE_IP ), BOOTSTRAP_NODE_PORT );
-                    DhtClientData * clientDataPtr = new DhtClientData(m_nodeIdRequested);
-                    m_dhtClientData.insert(clientDataPtr);
 
+                    DhtClientData * clientDataPtr = new DhtClientData(m_nodeIdRequested);
+                    LOG("m_responseDistribution: "<<clientDataPtr->m_responseDistribution);
+                    clientDataPtr->m_requiredNodeId = m_nodeIdRequested;
+                    clientDataPtr->m_type = DhtClientData::Type::t_find_node;
+                    m_dhtClientDataSet.insert(clientDataPtr);
+                    LOG("clientDataPtr == nullptr: "<< (clientDataPtr == nullptr));
                     sendFindNodeRequest(bootstrapNodeEndpoint, m_nodeIdRequested, clientDataPtr);
                     break;
                 }
@@ -171,16 +183,13 @@ public:
                                  return;
                              }
                              lt::bdecode_node idInResponse = rDict.dict_find("id");
-//                             LOG("direct response alert: rDict: " << rDict);
-//                             auto sth = nodesInResponse.string_length();
-//                             LOG("string_length: " << sth);
 //                             LOG("idInResponse: " << idInResponse);
                              std::set<ReferenceNode, Cmp> refNodes = parseNodes(nodesInResponse);
-//                             LOG("After sort:");
-//                             for(auto it = refNodes.begin(); it != refNodes.end(); ++it)
-//                             {
-//                                 LOG(it->m_id);
-//                             }
+                             LOG("nodes to ask:");
+                             for(auto it = refNodes.begin(); it != refNodes.end(); ++it)
+                             {
+                                 LOG(it->m_id);
+                             }
                              if(refNodes.size() == 0)
                              {
                                  return;
@@ -194,20 +203,30 @@ public:
                                      exit(0);
 //                                     return;
                                  }
+
                                  auto clientDataPtr = theAlert->userdata.get<DhtClientData>();
-                                 int equals = 0; // compare to vector
+                                 if(clientDataPtr == nullptr) {
+                                     LOG("clientDataPtr from " << it->m_id << " is nullptr");
+                                     return;
+                                 }
+                                 int equals = clientDataPtr->comparePrefixes(std::string{it->m_id.data()}); // compare to vector
+                                 LOG(it->m_id << " " << equals << " coincidences");
                                  assert (equals < 20);
-                                 if(clientDataPtr->m_responseDistribution[equals] < 255)// [9 6 (0) 2 1 0 0 0]
+                                 if(clientDataPtr->m_responseDistribution[equals] < 255) // [ 9 6 (0) 2 1 0 0 0 ]
                                  {
                                      clientDataPtr->m_responseDistribution[equals]++;
                                  }
-                                 for(int i = equals + 1; i < 20; ++i)
+//                                 m_dhtClientDataSet.insert(clientDataPtr);
+//                                 LOG("m_responseDistribution: "<<clientDataPtr->m_responseDistribution); ??????????????????
+                                 for(int i = equals+1; i < 20 ; ++i)
                                  {
-                                     if(clientDataPtr->m_responseDistribution[i] > 6) // (3)
+                                     if(clientDataPtr->m_responseDistribution[i] > equals) // (3)
                                      {
                                          goto skip;
                                      }
                                  }
+                                 LOG(it->m_id << "    ->    " << it->m_endpoint );
+                                 LOG("clientDataPtr == nullptr: "<< (clientDataPtr == nullptr));
                                  sendFindNodeRequest(it->m_endpoint, m_nodeIdRequested, clientDataPtr);
                                  skip:;
                              }
@@ -319,15 +338,14 @@ public:
             boost::asio::ip::address_v4 addr(ip);
             uint16_t port = uint8_t( strVal[offset+24] ) * 256 + uint8_t( strVal[offset+25] );  // a * 256 + b
             boost::asio::ip::udp::endpoint endpoint( addr, port);
-            ans.emplace(ReferenceNode{id, lt::digest32<160>(m_nodeIdRequested),endpoint});
-//            LOG( "id: " << id << " port: " << port << " addr " << addr );
+            ans.emplace(ReferenceNode{id, endpoint,  lt::digest32<160>(m_nodeIdRequested)});
         }
         return ans;
     }
 
     void sendFindNodeRequest(boost::asio::ip::udp::endpoint endpoint, const std::string & node, DhtClientData * clientDataPtr)
     {
-//        LOG("sendFindNodeRequest endpoint: " << endpoint << ", node: " << node);
+        LOG("sendFindNodeRequest to endpoint: " << endpoint << ", node: " << node);
         lt::entry requestEntry;
         requestEntry["y"] = "q";
         requestEntry["q"] = "find_node";

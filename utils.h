@@ -17,8 +17,8 @@ std::string toString( const char * ptr, size_t size);
 struct ReferenceNode
 {
     lt::digest32<160> m_id;
-    lt::digest32<160> m_ref;
     boost::asio::ip::udp::endpoint m_endpoint;
+    lt::digest32<160> m_ref;
 };
 
 
