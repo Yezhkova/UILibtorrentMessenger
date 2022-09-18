@@ -103,20 +103,24 @@ void standaloneTest()
 {
     UIDelegate responder;
     responder.createLtSessionPtr(IP ":11101", std::make_shared<UIDelegate> (responder), "user1");
-
+    Sleep(1000);
     UIDelegate requester;
     requester.createLtSessionPtr(IP_REQUESTER ":11102", std::make_shared<UIDelegate> (requester), "user2");
+    Sleep(1000);
+    g_publicKeyRequested = responder.m_sessionWrapperPtr->getPublicKey();
+    requester.m_sessionWrapperPtr->getDhtItem(g_publicKeyRequested);
+    Sleep(500000);
 
     // successful request
-    Sleep(30000);
+//    Sleep(30000);
 //    requesterTestDel.m_sessionWrapperPtr->sendMessage(uep( IP, 11101 ), "I send message"); // 2 -> 1
 //    g_sessionToSendFindNode = requester.m_sessionWrapperPtr->getSession();
-    g_publicKeyRequested = requester.m_sessionWrapperPtr->getPublicKey();
-    requester.m_sessionWrapperPtr->getDhtItem(g_publicKeyRequested);
+//    g_publicKeyRequested = requester.m_sessionWrapperPtr->getPublicKey();
+//    requester.m_sessionWrapperPtr->getDhtItem(g_publicKeyRequested);
 //    g_nodeIdRequested = requester.m_sessionWrapperPtr->getNodeIdRequested();
 
 //    for void responseHandler(const lt::dht::msg & msg):
 //    requester.m_sessionWrapperPtr->setResponseHandler(responseHandler);
 
-    Sleep(5000*100);
+//    Sleep();
 }
