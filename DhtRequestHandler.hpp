@@ -34,8 +34,10 @@ public:
             LOG("Dictionary: " << dict);
             auto txt = dict.dict_find_string_value("txt");
             LOG("Received message \"" << std::string(txt) << "\" from " << senderEndpoint);
-//            m_delegate->onMessage(std::string(txt), senderEndpoint);
             response["r"]["msg"] = 1;
+            response["r"]["txt"] = std::string(txt);
+            response["r"]["addr"] = senderEndpoint.address().to_string();
+            response["r"]["port"] = senderEndpoint.port();
             LOG("response: "<< response);
             return true;
         }

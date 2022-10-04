@@ -57,7 +57,11 @@ void MainWindow::on_connectButton_clicked()
     createLtSessionPtr(m_address +":"+ std::to_string(m_port), shared_from_this());//////////////
     if(m_sessionWrapperPtr != nullptr)
     {
-        m_sessionWrapperPtr->start();
+        std::shared_ptr<std::promise<void>> p = std::make_shared<std::promise<void>>();
+        std::future<void> user_ready = p->get_future();
+
+        m_sessionWrapperPtr->start(p);
+        user_ready.get();
         LOG(m_username << ": Session started");
     }
     else

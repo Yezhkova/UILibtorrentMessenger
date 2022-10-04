@@ -22,11 +22,24 @@ public:
 
 public:
 
-    void createLtSessionPtr( const std::string& addressAndPort, std::shared_ptr<SessionWrapperDelegate> delegate, std::string username )
+    void createLtSessionPtr( const std::string& addressAndPort,
+                             std::shared_ptr<SessionWrapperDelegate> delegate,
+                             const std::string & username )
     {
-        LOG("Creating session pointer...");
-        m_sessionWrapperPtr = std::make_shared<SessionWrapper>( addressAndPort, delegate, username );
-        m_sessionWrapperPtr->start();
+        std::shared_ptr<std::promise<void>> p = std::make_shared<std::promise<void>>();
+        std::future<void> user_ready = p->get_future();
+        auto createSessionLambda = [p, this]( const std::string & addressAndPort,
+                                              std::shared_ptr<SessionWrapperDelegate> SessionWrapperDelegate,
+                                              std::string username)
+        {
+
+            LOG("Creating session pointer...");
+            m_sessionWrapperPtr = std::make_shared<SessionWrapper>( addressAndPort, SessionWrapperDelegate, username );
+            m_sessionWrapperPtr->start(p);
+        };
+        std::thread createSessionPtrThread(createSessionLambda, std::ref(addressAndPort), delegate, std::ref(username));
+        createSessionPtrThread.join();
+        user_ready.get();
     }
 
 //    void dhtDirectRequest(boost::asio::ip::udp::endpoint endpoint,lt::entry entry, libtorrent::client_data_t data)
@@ -103,21 +116,14 @@ void standaloneTest()
 {
     UIDelegate responder;
     responder.createLtSessionPtr(IP ":11101", std::make_shared<UIDelegate> (responder), "user1");
-    Sleep(10000);
 
     UIDelegate requester;
     requester.createLtSessionPtr(IP_REQUESTER ":11102", std::make_shared<UIDelegate> (requester), "user2");
-    Sleep(10000);
 
     g_publicKeyRequested = responder.m_sessionWrapperPtr->getPublicKey();
-    requester.m_sessionWrapperPtr->getEndpointDhtItem(g_publicKeyRequested); // lambda here
-    Sleep(6000);
-    auto endpoint = requester.m_sessionWrapperPtr->getEndpointRequested();
-//    boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::make_address("192.168.1.10"), 11101);
+    auto endpoint = requester.m_sessionWrapperPtr->getEndpointByDhtItem(g_publicKeyRequested); // lambda here
 
-    requester.m_sessionWrapperPtr->sendMessage(endpoint, "Hello Responder!");
-    Sleep(50000);
-
+//    requester.m_sessionWrapperPtr->sendMessage(endpoint, "Hello Responder!");
 //    std::mutex mutex;
 //    mutex.lock();
 //    mutex.lock();

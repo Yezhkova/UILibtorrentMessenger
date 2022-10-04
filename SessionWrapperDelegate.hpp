@@ -6,9 +6,9 @@
 class SessionWrapperAbstract : public std::enable_shared_from_this<SessionWrapperAbstract>
 {
 public:
-    virtual void start() = 0;
+    virtual void start(std::shared_ptr<std::promise<void>> p) = 0;
     virtual void sendMessage( boost::asio::ip::udp::endpoint endPoint, const std::string& text ) = 0;
-    virtual void getEndpointDhtItem(const lt::dht::public_key & key) = 0;
+    virtual boost::asio::ip::udp::endpoint getEndpointByDhtItem(const lt::dht::public_key & key) = 0;
     virtual const lt::dht::public_key & getPublicKey() const = 0;
 };
 

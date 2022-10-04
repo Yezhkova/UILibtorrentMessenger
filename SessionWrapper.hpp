@@ -15,6 +15,8 @@
 #include "libtorrent/kademlia/item.hpp"
 #include "utils.h"
 #include <set>
+#include <map>
+#include <future>
 
 struct Cmp {
     bool operator () (const ReferenceNode & a, const ReferenceNode & b) const
@@ -33,16 +35,16 @@ public:
     bool m_nodeIdFound = false;
 
 private:
-    libtorrent::session                       m_session;
-    std::shared_ptr<SessionWrapperDelegate>   m_delegate;
-    std::string                               m_addressAndPort;
-    std::string                               m_username;
-    lt::dht::secret_key                       m_secretKey;
-    lt::dht::public_key                       m_publicKey;
-    libtorrent::digest32<160>                 m_nodeId;
+    libtorrent::session                                                 m_session;
+    std::shared_ptr<SessionWrapperDelegate>                             m_delegate;
+    std::string                                                         m_addressAndPort;
+    std::string                                                         m_username;
+    lt::dht::secret_key                                                 m_secretKey;
+    lt::dht::public_key                                                 m_publicKey;
+    libtorrent::digest32<160>                                           m_nodeId;
     //    for void responseHandler(const lt::dht::msg & msg):
-    std::string                               m_nodeIdRequested;
-    boost::asio::ip::udp::endpoint            m_endpointRequested;
+    std::string                                                         m_nodeIdRequested;
+    std::map<std::string, std::shared_ptr<std::promise<boost::asio::ip::udp::endpoint>>>          m_map;
     struct DhtClientData
     {
         DhtClientData(){}
@@ -59,6 +61,7 @@ private:
         Type m_type;
         std::string m_requiredNodeId;
         uint8_t m_responseDistribution[20];
+        std::shared_ptr<std::promise<void>> m_promise_ptr;
         //        int m_depth;
         int comparePrefixes(const std::string & id)
         {
@@ -77,8 +80,6 @@ private:
         return output;
     }
 
-    std::set<DhtClientData * > m_dhtClientDataSet;
-
     lt::settings_pack generateSessionSettings(std::string addressAndPort)
     {
         libtorrent::settings_pack sp;
@@ -92,6 +93,9 @@ private:
         sp.set_str(libtorrent::settings_pack::listen_interfaces, addressAndPort);
         sp.set_bool(libtorrent::settings_pack::dht_ignore_dark_internet, false);
         sp.set_bool(libtorrent::settings_pack::dht_restrict_routing_ips, false);
+
+        sp.set_bool( lt::settings_pack::enable_upnp, true );
+        sp.set_bool( lt::settings_pack::enable_natpmp, true );
         return sp;
     }
 
@@ -100,16 +104,13 @@ public:
         m_session( generateSessionSettings( addressAndPort ) ),
         m_delegate( delegate ),
         m_addressAndPort(addressAndPort),
-        m_username(username)
-    {
-//        LOG("SessionWrapper ("<<m_username<<") initialized");
-    }
+        m_username(username) { }
     lt::session * getSession()
     {
         return & m_session;
     }
 
-    virtual void start() override
+    virtual void start(std::shared_ptr<std::promise<void>> p) override
     {
         m_session.set_alert_notify( [this] { this->alertHandler(); } );
         m_session.add_extension(std::make_shared<DhtRequestHandler>(m_delegate));
@@ -125,8 +126,8 @@ public:
                     boost::asio::ip::make_address( BOOTSTRAP_NODE_IP ), BOOTSTRAP_NODE_PORT );
         DhtClientData * clientDataPtr = new DhtClientData(m_nodeIdRequested);
         clientDataPtr->m_type = DhtClientData::Type::t_find_node;
+        clientDataPtr->m_promise_ptr = p;
         sendFindNodeRequest(bootstrapNodeEndpoint, m_nodeIdRequested, clientDataPtr);
-//        Sleep(10000);
     }
 
     void alertHandler()
@@ -138,7 +139,7 @@ public:
 
             // For debugging!!!
             //
-            //            LOG(  m_addressAndPort << ":  " << alert->what() << " (type="<< alert->type() <<"):  " << alert->message() );
+//                        LOG(  m_addressAndPort << ":  " << alert->what() << " (type="<< alert->type() <<"):  " << alert->message() );
             //            continue;
 
             switch (alert->type())
@@ -242,8 +243,9 @@ public:
         LOG(theAlert->item)
         std::string address = theAlert->item.find_key("address")->string();
         std::string strPort = theAlert->item.find_key("port")->string();
-        m_endpointRequested = boost::asio::ip::udp::endpoint(boost::asio::ip::make_address(address),
+        boost::asio::ip::udp::endpoint endpointRequested(boost::asio::ip::make_address(address),
                                                              std::stoi(strPort) );
+        m_map[theAlert->item.find_key("pubKey")->string()]->set_value(endpointRequested);
     }
 
     void DhtDirectResponseAlertHandler(lt::alert * alert)
@@ -310,18 +312,21 @@ public:
                 std::string myPort = std::to_string(it->m_endpoint.port());
                 LOG("found " << it->m_id <<" ("<< NUMNODES << ")");
                 LOG("address: " << myAddress << ", port: " << myPort);
-                m_session.dht_put_item(m_publicKey.bytes, [this, myAddress, myPort](lt::entry& item, std::array<char, 64>& sig
+                m_session.dht_put_item(m_publicKey.bytes, [this, myAddress, myPort, clientDataPtr](lt::entry& item, std::array<char, 64>& sig
                                        , std::int64_t& seq, std::string const& salt)
                 {
                     item["node"] = m_nodeId.to_string();
-                    item["address"] = myAddress; //"78.26.151.81";
-                    item["port"] = myPort; //"11101";
+                    item["address"] = myAddress;
+                    item["port"] = myPort;
+                    item["pubKey"] = toString(m_publicKey.bytes);
                     seq=0;
                     std::vector<char> v;
                     lt::bencode(std::back_inserter(v), item);
                     lt::dht::signature sign = lt::dht::sign_mutable_item(v, salt
                                                                          , lt::dht::sequence_number(seq), m_publicKey, m_secretKey);
                     sig = sign.bytes;
+                    LOG("in processFindNodeQuery: item: "<<item);
+                    clientDataPtr->m_promise_ptr->set_value();
                 }, SALT_ENDPOINT);
             }
             else
@@ -334,15 +339,22 @@ public:
     void processMsgQuery(lt::bdecode_node & rDict, DhtClientData * clientDataPtr)
     {
         lt::bdecode_node receiverId = rDict.dict_find("id");
-        if(receiverId.type() != lt::bdecode_node::type_t::string_t)
+        lt::bdecode_node senderAddr = rDict.dict_find("addr");
+        lt::bdecode_node senderPort = rDict.dict_find("port");
+        lt::bdecode_node msgText = rDict.dict_find("txt");
+        if(receiverId.type() != lt::bdecode_node::type_t::string_t ||
+           senderAddr.type() != lt::bdecode_node::type_t::string_t ||
+           senderPort.type() != lt::bdecode_node::type_t::int_t ||
+           senderAddr.type() != lt::bdecode_node::type_t::string_t )
         {
-            LOG("receiverId is not string_t");
+            LOG("in processMsgQuery: type incongruity");
             return;
         }
         int result = rDict.dict_find("msg").int_value();
+
         if(result == 1)
         {
-            LOG(receiverId << " received message successfully" );
+            LOG(receiverId << " received message "<<msgText<<" from "<<senderAddr<<":"<<senderPort<<" successfully" );
         }
     }
 
@@ -397,28 +409,39 @@ public:
         e["q"] = "msg";
         e["txt"] = text;
         std::string senderEndpoint = endpoint.address().to_string() + ":";
-//        senderEndpoint += std::stoi(endpoint.port());
-//        e["addr"] = senderEndpoint;
+        senderEndpoint += std::to_string(endpoint.port());
+        e["addr"] = senderEndpoint;
         DhtClientData * clientDataPtr = new DhtClientData;
         clientDataPtr->m_type = DhtClientData::Type::t_msg;
         m_session.dht_direct_request( endpoint, e, libtorrent::client_data_t(clientDataPtr) );
     }
 
-    virtual void getEndpointDhtItem(const lt::dht::public_key & key) override
+    virtual boost::asio::ip::udp::endpoint getEndpointByDhtItem(const lt::dht::public_key & key) override
     {
-        m_session.dht_get_item(key.bytes, SALT_ENDPOINT);
+        //    promise& operator=(promise&& _Other) noexcept {
+
+        std::shared_ptr< std::promise<boost::asio::ip::udp::endpoint> > prom =
+                std::make_shared<std::promise<boost::asio::ip::udp::endpoint>>();
+        try{
+            std::future<boost::asio::ip::udp::endpoint> f = prom->get_future();  // can't read state:
+            LOG("mapping "<<toString(key.bytes));
+            m_map.insert(std::make_pair(toString(key.bytes), prom));
+            LOG("inside getEndpointByDhtItem");
+            std::thread t([key, this](){
+                m_session.dht_get_item(key.bytes, SALT_ENDPOINT);
+            });
+            boost::asio::ip::udp::endpoint edp = f.get();
+            t.join();
+            return edp;
+        } catch(std::exception & e){
+            LOG("ERROR: " << e.what());
+        }
     }
 
     virtual const lt::dht::public_key & getPublicKey() const override
     {
         return m_publicKey;
     }
-
-    virtual const boost::asio::ip::udp::endpoint & getEndpointRequested()
-    {
-        return m_endpointRequested;
-    }
-
 };
 
 
